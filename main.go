@@ -4,45 +4,63 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"log"
 	"net/http"
 	"strings"
-	"sync"
+	"time"
 )
 
-type Task struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
+var db *gorm.DB
+
+func initDB() {
+	dsn := "host=localhost user=postgres password=YOUPASSWORD dbname=postgres port=5432 sslmode=disable"
+	var err error
+
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Could not connect to database: %v", err)
+	}
+
+	if err := db.AutoMigrate(&Task{}); err != nil {
+		log.Fatalf("Could not migrate: %v", err)
+	}
+
 }
 
-var (
-	tasks    = make(map[string]Task)
-	tasksMux sync.RWMutex
-)
+type Task struct {
+	ID          string     `gorm:"primaryKey" json:"id"`
+	Description string     `json:"task"`
+	IsDone      bool       `json:"is_done"`
+	DeletedAt   *time.Time `json:"deletedAt,omitempty"`
+}
 
 type TaskRequest struct {
-	Description string `json:"description"`
+	IsDone bool   `json:"is_Done"`
+	Task   string `json:"task"`
 }
 
 func generateID() string {
 	return uuid.New().String()
 }
+
 func GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid requst method", http.StatusMethodNotAllowed)
 		return
 	}
-	tasksMux.RLock()
-	defer tasksMux.RUnlock()
 
-	taskList := make([]Task, 0, len(tasks))
-	for _, task := range tasks {
-		taskList = append(taskList, task)
+	var tasks []Task
+
+	if err := db.Where("deleted_at IS NULL").Find(&tasks).Error; err != nil {
+		http.Error(w, "Failed to fetch tasks", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(taskList)
+	json.NewEncoder(w).Encode(tasks)
 }
-
 func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid requst method", http.StatusMethodNotAllowed)
@@ -55,28 +73,32 @@ func PostTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if req.Description == "" {
+	if req.Task == "" {
 		http.Error(w, "Description is required", http.StatusBadRequest)
 		return
 	}
 
-	newTask := Task{ID: generateID(), Description: req.Description}
-
-	tasksMux.Lock()
-	tasks[newTask.ID] = newTask
-	tasksMux.Unlock()
+	newTask := Task{
+		ID:          generateID(),
+		Description: req.Task,
+		IsDone:      req.IsDone,
+	}
+	if err := db.Create(&newTask).Error; err != nil {
+		http.Error(w, "Failed to create task", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newTask)
 }
-
 func PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
-		http.Error(w, "Patch only", http.StatusMethodNotAllowed)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	id := r.URL.Path[len("/patch/"):]
+
+	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 
 	var req TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -85,25 +107,23 @@ func PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	tasksMux.Lock()
-	defer tasksMux.Unlock()
-
-	task, ok := tasks[id]
-	if !ok {
+	var task Task
+	if err := db.First(&task, "id = ? AND deleted_at IS NULL", id).Error; err != nil {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 
-	if task.Description != "" {
-		task.Description = req.Description
-		tasks[id] = task
+	task.Description = req.Task
+	task.IsDone = req.IsDone
+
+	if err := db.Save(&task).Error; err != nil {
+		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(task)
 }
-
 func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -111,24 +131,28 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
-	if id == "" {
-		http.Error(w, "ID is required", http.StatusBadRequest)
-		return
-	}
 
-	tasksMux.Lock()
-	defer tasksMux.Unlock()
-
-	if _, ok := tasks[id]; !ok {
+	var task Task
+	if err := db.First(&task, "id = ? AND deleted_at IS NULL", id).Error; err != nil {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 
-	delete(tasks, id)
-	w.WriteHeader(http.StatusNoContent) // 204 No Content
-}
+	deletedAt := time.Now()
+	task.DeletedAt = &deletedAt
 
+	if err := db.Save(&task).Error; err != nil {
+		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
+}
 func main() {
+
+	initDB()
+
 	http.HandleFunc("/tasks", GetTaskHandler)
 	http.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
