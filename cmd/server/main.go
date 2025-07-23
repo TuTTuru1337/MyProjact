@@ -2,7 +2,6 @@ package main
 
 import (
 	"Tutturu/internal/handlers"
-	"Tutturu/internal/models"
 	"Tutturu/internal/repository"
 	"Tutturu/pkg/config"
 	"Tutturu/pkg/database"
@@ -17,10 +16,6 @@ func main() {
 	db, err := database.InitDB(cfg.DB.DSN)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	if err := database.AutoMigrate(db, &models.Task{}); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
 	taskRepo := repository.NewTaskRepository(db)
