@@ -4,6 +4,7 @@ import (
 	"Tutturu/internal/models"
 	"Tutturu/internal/repository"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -18,13 +19,14 @@ func NewTaskHandler(repo *repository.TaskRepository) *TaskHandler {
 
 func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		respondError(w, http.StatusMethodNotAllowed, "Метод не разрешён")
 		return
 	}
 
 	tasks, err := h.repo.GetAll()
 	if err != nil {
-		http.Error(w, "Failed to fetch tasks", http.StatusInternalServerError)
+		log.Printf("Ошибка при получении задач: %v", err)
+		respondError(w, http.StatusInternalServerError, "Не удалось получить список задач")
 		return
 	}
 
@@ -33,14 +35,15 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		respondError(w, http.StatusMethodNotAllowed, "Метод не разрешён")
 		return
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 	task, err := h.repo.GetByID(id)
 	if err != nil {
-		http.Error(w, "Task not found", http.StatusNotFound)
+		log.Printf("Ошибка при получении задачи по id=%s: %v", id, err)
+		respondError(w, http.StatusNotFound, "Задача не найдена")
 		return
 	}
 
@@ -49,25 +52,26 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		respondError(w, http.StatusMethodNotAllowed, "Метод не разрешён")
 		return
 	}
 
 	var req models.TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		respondError(w, http.StatusBadRequest, "Невалидное тело запроса")
 		return
 	}
 	defer r.Body.Close()
 
 	if req.Task == "" {
-		http.Error(w, "Task description is required", http.StatusBadRequest)
+		respondError(w, http.StatusBadRequest, "Описание задачи обязательно")
 		return
 	}
 
 	task := models.NewTask(req)
 	if err := h.repo.Create(task); err != nil {
-		http.Error(w, "Failed to create task", http.StatusInternalServerError)
+		log.Printf("Ошибка при создании задачи: %v", err)
+		respondError(w, http.StatusInternalServerError, "Не удалось создать задачу")
 		return
 	}
 
@@ -77,20 +81,20 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		respondError(w, http.StatusMethodNotAllowed, "Метод не разрешён")
 		return
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 	task, err := h.repo.GetByID(id)
 	if err != nil {
-		http.Error(w, "Task not found", http.StatusNotFound)
+		respondError(w, http.StatusNotFound, "Задача не найдена")
 		return
 	}
 
 	var req models.TaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		respondError(w, http.StatusBadRequest, "Невалидное тело запроса")
 		return
 	}
 	defer r.Body.Close()
@@ -101,7 +105,8 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	task.IsDone = req.IsDone
 
 	if err := h.repo.Update(task); err != nil {
-		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		log.Printf("Ошибка при обновлении задачи id=%s: %v", id, err)
+		respondError(w, http.StatusInternalServerError, "Не удалось обновить задачу")
 		return
 	}
 
@@ -110,13 +115,14 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		respondError(w, http.StatusMethodNotAllowed, "Метод не разрешён")
 		return
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/tasks/")
 	if err := h.repo.Delete(id); err != nil {
-		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		log.Printf("Ошибка при удалении задачи id=%s: %v", id, err)
+		respondError(w, http.StatusInternalServerError, "Не удалось удалить задачу")
 		return
 	}
 
@@ -126,4 +132,13 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 func respondJSON(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
+}
+
+func respondError(w http.ResponseWriter, status int, message string) {
+	log.Printf("HTTP %d - %s", status, message)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error": message,
+	})
 }
