@@ -1,26 +1,21 @@
 package database
 
 import (
+	"Tutturu/internal/models"
+	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 )
 
 func InitDB(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка подключения к базе данных: %w", err)
 	}
 
-	log.Println("Database connection established")
+	if err := db.AutoMigrate(&models.Task{}); err != nil {
+		return nil, fmt.Errorf("ошибка при миграции базы данных: %w", err)
+	}
+
 	return db, nil
-}
-
-func AutoMigrate(db *gorm.DB, models ...interface{}) error {
-	if err := db.AutoMigrate(models...); err != nil {
-		return err
-	}
-
-	log.Println("Database migration completed")
-	return nil
 }

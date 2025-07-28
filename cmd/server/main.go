@@ -7,6 +7,7 @@ import (
 	"Tutturu/pkg/database"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -15,7 +16,11 @@ func main() {
 
 	db, err := database.InitDB(cfg.DB.DSN)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		if strings.Contains(err.Error(), "миграции") {
+			log.Fatalf("Ошибка миграции базы данных: %v", err)
+		} else {
+			log.Fatalf("Ошибка подключения к базе данных: %v", err)
+		}
 	}
 
 	taskRepo := repository.NewTaskRepository(db)
