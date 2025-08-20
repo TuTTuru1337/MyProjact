@@ -1,6 +1,6 @@
 # Tutturu
 
-Учебный проект Todo API на Go. Название **Tutturu** 
+Учебный проект Todo на Go. Название **Tutturu** 
 
 ---
 
