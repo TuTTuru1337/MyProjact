@@ -35,7 +35,6 @@ func main() {
 	svc := service.NewService(repo)
 	handler := handlers.NewHandler(svc)
 
-	// Echo
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
