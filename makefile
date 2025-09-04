@@ -17,5 +17,19 @@ migrate-down:
 gen:
 	oapi-codegen -config openapi/.openapi -include-tags tasks -package tasks openapi/openapi.yaml > ./internal/web/tasks/api.gen.go
 
+gen-users:
+	oapi-codegen -config openapi/.openapi-users -include-tags users -package users openapi/openapi.yaml > ./internal/web/users/api.gen.go
+
+gen-all: gen gen-users
+
 lint:
 	golangci-lint run --color=auto
+
+test:
+	go test ./... -v
+
+run:
+	go run ./cmd/server
+
+build:
+	go build -o bin/server ./cmd/server

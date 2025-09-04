@@ -1,0 +1,7 @@
+package: users
+generate:
+  strict-server: true
+  chi-server: false
+  echo-server: true
+  models: true
+output: internal/web/users/api.gen.go
