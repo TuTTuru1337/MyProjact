@@ -33,21 +33,57 @@
 
 ---
 
-## Структура проекта
+## 🏗️ Структура проекта
 
+```
 Tutturu/
+├── cmd/server/
+│   └── main.go                 # Entry point
+│
 ├── internal/
-│   ├── handlers/          # HTTP обработчики (tasks + users)
-│   ├── models/           # Модели данных (Task + User)
-│   ├── repository/       # Репозитории (tasks)
-│   ├── service/         # Бизнес-логика (tasks)
-│   ├── userService/            # Модуль пользователей 
-│   │   ├── repository/  # Репозиторий пользователей
-│   │   └── service/     # Сервис пользователей
-│   └── web/
-│       ├── tasks/       # Сгенерированный код для задач
-│       └── users/       # Сгенерированный код для пользователей 
-
+│   ├── handlers/               # HTTP handlers
+│   │   ├── tasks.go           # Task handlers
+│   │   └── userHandlers.go    # User handlers
+│   ├── models/                # Data models
+│   │   ├── task.go           # Task model
+│   │   └── user.go           # User model
+│   ├── repository/            # Database layer (Tasks)
+│   │   └── task_repository.go
+│   ├── service/               # Business logic (Tasks)
+│   │   └── task_service.go
+│   ├── user/                  # User module
+│   │   ├── repository/        # User repository
+│   │   │   └── user_repository.go
+│   │   └── service/          # User service
+│   │       └── user_service.go
+│   └── web/                  # Generated code
+│       ├── tasks/            # Tasks API
+│       │   └── api.gen.go
+│       └── users/           # Users API
+│           └── api.gen.go
+│
+├── pkg/                      # Utility packages
+│   ├── config/              # Configuration
+│   │   └── config.go
+│   └── database/            # Database
+│       └── db.go
+│
+├── migrations/              # Database migrations
+│   ├── 000001_create_tasks_table.up.sql
+│   ├── 000001_create_tasks_table.down.sql
+│   ├── 000002_create_users_table.up.sql
+│   └── 000002_create_users_table.down.sql
+│
+├── openapi/                # OpenAPI specs
+│   ├── .openapi           # Codegen config
+│   └── openapi.yaml       # API documentation
+│
+├── .gitignore
+├── go.mod
+├── go.sum
+├── Makefile
+└── README.md
+```
 ---
 # Команды Makefile
 
