@@ -2,55 +2,57 @@ package main
 
 import (
 	"Tutturu/internal/handlers"
-	"Tutturu/internal/models"
+	"Tutturu/internal/pkg/config"
+	"Tutturu/internal/pkg/database"
 	"Tutturu/internal/repository"
 	"Tutturu/internal/service"
-	userRepo "Tutturu/internal/userService/repository"
-	userService "Tutturu/internal/userService/service"
+	userrepository "Tutturu/internal/userService/repository"
+	userservice "Tutturu/internal/userService/service"
 	"Tutturu/internal/web/tasks"
 	"Tutturu/internal/web/users"
-	"Tutturu/pkg/config"
-	"Tutturu/pkg/database"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"log"
-	"strings"
+
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
+	// Загрузка конфигурации
 	cfg := config.Load()
-	db, err := database.InitDB(cfg.DB.DSN)
+
+	// Подключение к базе данных
+	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
-		if strings.Contains(err.Error(), "миграции") {
-			log.Fatalf("Ошибка миграции базы данных: %v", err)
-		} else {
-			log.Fatalf("Ошибка подключения к базе данных: %v", err)
-		}
+		log.Fatal("Failed to connect to database:", err)
 	}
 
-	if err := db.AutoMigrate(&models.Task{}, &models.User{}); err != nil {
-		log.Fatalf("Ошибка миграции: %v", err)
+	// Автомиграция (опционально)
+	err = database.Migrate(db)
+	if err != nil {
+		log.Fatal("Failed to migrate database:", err)
 	}
 
-	tasksRepo := repository.NewTaskRepository(db)
-	tasksService := service.NewService(tasksRepo)
-	tasksHandler := handlers.NewHandler(tasksService)
+	// Инициализация репозиториев
+	taskRepo := repository.NewTaskRepository(db)
+	userRepo := userrepository.NewUserRepository(db)
 
-	userRepository := userRepo.NewUserRepository(db)
-	userServiceImpl := userService.NewUserService(userRepository)
+	// Инициализация сервисов
+	taskService := service.NewService(taskRepo)
+	userServiceImpl := userservice.NewUserService(userRepo) // УБРАТЬ ЛИШНИЙ ПАРАМЕТР
+
+	// Инициализация хендлеров
+	taskHandler := handlers.NewHandler(taskService)
 	userHandler := handlers.NewUserHandler(userServiceImpl)
 
+	// Создание Echo router
 	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 
-	tasksStrictHandler := tasks.NewStrictHandler(tasksHandler, nil)
-	tasks.RegisterHandlers(e, tasksStrictHandler)
+	// Регистрация роутов для задач
+	tasks.RegisterHandlers(e, taskHandler)
 
-	usersStrictHandler := users.NewStrictHandler(userHandler, nil)
-	users.RegisterHandlers(e, usersStrictHandler)
+	// Регистрация роутов для пользователей
+	users.RegisterHandlers(e, userHandler)
 
-	if err := e.Start(cfg.Server.Address); err != nil {
-		log.Fatalf("Ошибка запуска сервера: %v", err)
-	}
+	// Запуск сервера
+	log.Printf("Server starting on port %s", cfg.Port)
+	log.Fatal(e.Start(":" + cfg.Port))
 }

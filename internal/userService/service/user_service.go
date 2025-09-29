@@ -13,6 +13,7 @@ type UserService interface {
 	CreateUser(ctx context.Context, user models.User) (models.User, error)
 	UpdateUser(ctx context.Context, user models.User) (models.User, error)
 	DeleteUser(ctx context.Context, id int) error
+	GetTasksForUser(ctx context.Context, userID uint) ([]models.Task, error) // ДОБАВЛЕНО: новый метод
 }
 
 type UserServiceImpl struct {
@@ -42,4 +43,9 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, user models.User) (mod
 
 func (s *UserServiceImpl) DeleteUser(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, strconv.Itoa(id))
+}
+
+// ДОБАВЛЕНО: новый метод для получения задач пользователя
+func (s *UserServiceImpl) GetTasksForUser(ctx context.Context, userID uint) ([]models.Task, error) {
+	return s.repo.GetTasksForUser(ctx, userID)
 }

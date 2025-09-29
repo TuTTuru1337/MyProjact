@@ -1,0 +1,9 @@
+package: users
+generate:
+  echo-server: true
+  models: true
+output: internal/web/users/api.gen.go
+output-options:
+  skip-prune: true
+  include-tags:
+    - users

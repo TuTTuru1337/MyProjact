@@ -16,23 +16,22 @@ func NewTaskRepository(db *gorm.DB) *TaskRepository {
 
 func (r *TaskRepository) GetAll(ctx context.Context) ([]models.Task, error) {
 	var tasks []models.Task
-	if err := r.db.WithContext(ctx).Find(&tasks).Error; err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
-
-func (r *TaskRepository) GetByID(ctx context.Context, id string) (*models.Task, error) {
-	var task models.Task
-	err := r.db.WithContext(ctx).First(&task, "id = ? AND deleted_at IS NULL", id).Error
-	return &task, err
+	err := r.db.WithContext(ctx).Find(&tasks).Error
+	return tasks, err
 }
 
 func (r *TaskRepository) Create(ctx context.Context, task models.Task) (models.Task, error) {
-	if err := r.db.WithContext(ctx).Create(&task).Error; err != nil {
-		return models.Task{}, err
+	err := r.db.WithContext(ctx).Create(&task).Error
+	return task, err
+}
+
+func (r *TaskRepository) GetByID(ctx context.Context, id uint) (*models.Task, error) {
+	var task models.Task
+	err := r.db.WithContext(ctx).First(&task, id).Error
+	if err != nil {
+		return nil, err
 	}
-	return task, nil
+	return &task, nil
 }
 
 func (r *TaskRepository) Update(ctx context.Context, task models.Task) (models.Task, error) {
@@ -40,7 +39,15 @@ func (r *TaskRepository) Update(ctx context.Context, task models.Task) (models.T
 	return task, err
 }
 
-func (r *TaskRepository) Delete(ctx context.Context, id string) error {
+func (r *TaskRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&models.Task{}, id).Error
+}
 
-	return r.db.WithContext(ctx).Delete(&models.Task{}, "id = ?", id).Error
+func (r *TaskRepository) GetByUserID(ctx context.Context, userID uint) ([]models.Task, error) {
+	var tasks []models.Task
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&tasks).Error
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }

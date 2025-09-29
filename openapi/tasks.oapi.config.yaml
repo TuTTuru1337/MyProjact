@@ -1,0 +1,7 @@
+package: tasks
+generate:
+  echo-server: true
+  models: true
+output: internal/web/tasks/api.gen.go
+output-options:
+  skip-prune: true

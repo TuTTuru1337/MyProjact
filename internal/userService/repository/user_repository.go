@@ -49,3 +49,12 @@ func (r *UserRepository) Update(ctx context.Context, user models.User) (models.U
 func (r *UserRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.User{}, "id = ?", id).Error
 }
+
+func (r *UserRepository) GetTasksForUser(ctx context.Context, userID uint) ([]models.Task, error) {
+	var tasks []models.Task
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&tasks).Error
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
