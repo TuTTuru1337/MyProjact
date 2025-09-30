@@ -13,6 +13,16 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Task defines model for Task.
+type Task struct {
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Id        *uint      `json:"id,omitempty"`
+	IsDone    *bool      `json:"is_done,omitempty"`
+	Task      *string    `json:"task,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	UserId    *uint      `json:"user_id,omitempty"`
+}
+
 // User defines model for User.
 type User struct {
 	CreatedAt *time.Time           `json:"created_at,omitempty"`
@@ -51,6 +61,9 @@ type ServerInterface interface {
 
 	// (PATCH /users/{id})
 	PatchUsersId(ctx echo.Context, id uint) error
+
+	// (GET /users/{id}/tasks)
+	GetUsersIdTasks(ctx echo.Context, id uint) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -124,6 +137,22 @@ func (w *ServerInterfaceWrapper) PatchUsersId(ctx echo.Context) error {
 	return err
 }
 
+// GetUsersIdTasks converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUsersIdTasks(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id uint
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetUsersIdTasks(ctx, id)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -157,5 +186,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.DELETE(baseURL+"/users/:id", wrapper.DeleteUsersId)
 	router.GET(baseURL+"/users/:id", wrapper.GetUsersId)
 	router.PATCH(baseURL+"/users/:id", wrapper.PatchUsersId)
+	router.GET(baseURL+"/users/:id/tasks", wrapper.GetUsersIdTasks)
 
 }

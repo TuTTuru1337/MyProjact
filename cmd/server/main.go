@@ -30,9 +30,9 @@ func main() {
 	taskRepo := repository.NewTaskRepository(db)
 	userRepo := userrepository.NewUserRepository(db)
 	taskService := service.NewService(taskRepo)
-	userServiceImpl := userservice.NewUserService(userRepo) // УБРАТЬ ЛИШНИЙ ПАРАМЕТР
+	userServiceImpl := userservice.NewUserService(userRepo)
 	taskHandler := handlers.NewHandler(taskService)
-	userHandler := handlers.NewUserHandler(userServiceImpl)
+	userHandler := handlers.NewUserHandler(userServiceImpl, taskService)
 
 	e := echo.New()
 	tasks.RegisterHandlers(e, taskHandler)

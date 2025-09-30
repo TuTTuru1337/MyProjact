@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"Tutturu/internal/models"
+	service2 "Tutturu/internal/service"
 	"Tutturu/internal/userService/service"
 	"Tutturu/internal/web/users"
 	"net/http"
@@ -11,12 +12,14 @@ import (
 )
 
 type UserHandler struct {
-	service *service.UserServiceImpl
+	service     *service.UserServiceImpl
+	taskService *service2.Service
 }
 
-func NewUserHandler(svc *service.UserServiceImpl) *UserHandler {
+func NewUserHandler(svc *service.UserServiceImpl, taskService *service2.Service) *UserHandler {
 	return &UserHandler{
-		service: svc,
+		service:     svc,
+		taskService: taskService,
 	}
 }
 
@@ -28,7 +31,7 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 
 	response := make([]users.User, len(allUsers))
 	for i, u := range allUsers {
-		email := openapi_types.Email(u.Email) // Альтернативное решение
+		email := openapi_types.Email(u.Email)
 		response[i] = users.User{
 			Id:        &u.ID,
 			Email:     &email,
@@ -56,6 +59,27 @@ func (h *UserHandler) GetUsersId(c echo.Context, id uint) error {
 		CreatedAt: &user.CreatedAt,
 		UpdatedAt: &user.UpdatedAt,
 	})
+}
+
+func (h *UserHandler) GetUsersIdTasks(c echo.Context, id uint) error {
+	tasksList, err := h.taskService.GetTasksByUserID(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	response := make([]users.Task, len(tasksList))
+	for i, t := range tasksList {
+		response[i] = users.Task{
+			Id:        &t.ID,
+			UserId:    &t.UserID,
+			Task:      &t.Task,
+			IsDone:    &t.IsDone,
+			CreatedAt: &t.CreatedAt,
+			UpdatedAt: &t.UpdatedAt,
+		}
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func (h *UserHandler) PostUsers(c echo.Context) error {
