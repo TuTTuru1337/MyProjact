@@ -33,7 +33,6 @@ func (s *UserServiceImpl) GetUserByID(ctx context.Context, id int) (*models.User
 }
 
 func (s *UserServiceImpl) CreateUser(ctx context.Context, user models.User) (models.User, error) {
-	// Здесь можно добавить хеширование пароля
 	return s.repo.Create(ctx, user)
 }
 
@@ -45,7 +44,6 @@ func (s *UserServiceImpl) DeleteUser(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, strconv.Itoa(id))
 }
 
-// ДОБАВЛЕНО: новый метод для получения задач пользователя
 func (s *UserServiceImpl) GetTasksForUser(ctx context.Context, userID uint) ([]models.Task, error) {
 	return s.repo.GetTasksForUser(ctx, userID)
 }

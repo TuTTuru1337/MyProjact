@@ -20,7 +20,6 @@ func NewUserHandler(svc *service.UserServiceImpl) *UserHandler {
 	}
 }
 
-// GetUsers implements users.ServerInterface.
 func (h *UserHandler) GetUsers(c echo.Context) error {
 	allUsers, err := h.service.GetAllUsers(c.Request().Context())
 	if err != nil {
@@ -43,7 +42,6 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// GetUsersId implements users.ServerInterface.
 func (h *UserHandler) GetUsersId(c echo.Context, id uint) error {
 	user, err := h.service.GetUserByID(c.Request().Context(), int(id))
 	if err != nil {
@@ -60,7 +58,6 @@ func (h *UserHandler) GetUsersId(c echo.Context, id uint) error {
 	})
 }
 
-// PostUsers implements users.ServerInterface.
 func (h *UserHandler) PostUsers(c echo.Context) error {
 	var userReq users.UserRequest
 	if err := c.Bind(&userReq); err != nil {
@@ -87,7 +84,6 @@ func (h *UserHandler) PostUsers(c echo.Context) error {
 	})
 }
 
-// DeleteUsersId implements users.ServerInterface.
 func (h *UserHandler) DeleteUsersId(c echo.Context, id uint) error {
 	err := h.service.DeleteUser(c.Request().Context(), int(id))
 	if err != nil {
@@ -107,7 +103,6 @@ func (h *UserHandler) PatchUsersId(c echo.Context, id uint) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "User not found"})
 	}
 
-	// Обновляем только переданные поля
 	if userReq.Email != "" {
 		user.Email = string(userReq.Email)
 	}

@@ -18,7 +18,6 @@ func NewHandler(svc *service.Service) *TaskHandler {
 	}
 }
 
-// GetTasks implements tasks.ServerInterface.
 func (h *TaskHandler) GetTasks(c echo.Context) error {
 	allTasks, err := h.service.GetAllTasks(c.Request().Context())
 	if err != nil {
@@ -40,7 +39,6 @@ func (h *TaskHandler) GetTasks(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// PostTasks implements tasks.ServerInterface.
 func (h *TaskHandler) PostTasks(c echo.Context) error {
 	var taskReq tasks.TaskRequest
 	if err := c.Bind(&taskReq); err != nil {
@@ -70,7 +68,6 @@ func (h *TaskHandler) PostTasks(c echo.Context) error {
 	return c.JSON(http.StatusCreated, response)
 }
 
-// GetTasksByUserId implements tasks.ServerInterface.
 func (h *TaskHandler) GetTasksByUserId(c echo.Context, userId uint) error {
 	tasksList, err := h.service.GetTasksByUserID(c.Request().Context(), userId)
 	if err != nil {
@@ -92,7 +89,6 @@ func (h *TaskHandler) GetTasksByUserId(c echo.Context, userId uint) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// DeleteTasksId implements tasks.ServerInterface.
 func (h *TaskHandler) DeleteTasksId(c echo.Context, id uint) error {
 	err := h.service.DeleteTask(c.Request().Context(), int(id))
 	if err != nil {
@@ -112,8 +108,6 @@ func (h *TaskHandler) PatchTasksId(c echo.Context, id uint) error {
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Task not found"})
 	}
-
-	// Обновляем только переданные поля
 	task.Task = taskReq.Task
 	if taskReq.IsDone != nil {
 		task.IsDone = *taskReq.IsDone
